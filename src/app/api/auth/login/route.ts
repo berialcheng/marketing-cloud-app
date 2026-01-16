@@ -5,7 +5,8 @@ import { getSession } from "@/lib/session";
  * Marketing Cloud SSO Login Endpoint (Enhanced Package - OAuth 2.0)
  *
  * When MC iframes this URL, we check for existing session.
- * If no session, redirect to MC OAuth authorize endpoint.
+ * If no session, redirect the TOP LEVEL window to MC OAuth authorize endpoint.
+ * (MC OAuth page cannot be displayed in iframe due to X-Frame-Options: deny)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -42,16 +43,32 @@ export async function GET(request: NextRequest) {
 
     console.log(`SSO Login: Redirecting to OAuth authorize: ${authorizeUrl.toString()}`);
 
-    // Store state in cookie for verification in callback
-    const response = NextResponse.redirect(authorizeUrl.toString());
-    response.cookies.set("oauth_state", state, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
-      maxAge: 600, // 10 minutes
-    });
+    // Return HTML page that redirects the TOP LEVEL window
+    // This is necessary because MC OAuth page has X-Frame-Options: deny
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Redirecting to Marketing Cloud...</title>
+  <script>
+    // Set state cookie before redirect
+    document.cookie = "oauth_state=${state}; path=/; max-age=600; SameSite=None; Secure";
+    // Redirect top-level window (breaks out of iframe)
+    window.top.location.href = "${authorizeUrl.toString()}";
+  </script>
+</head>
+<body>
+  <p>Redirecting to Marketing Cloud for authentication...</p>
+  <p>If you are not redirected, <a href="${authorizeUrl.toString()}" target="_top">click here</a>.</p>
+</body>
+</html>
+`;
 
-    return response;
+    return new NextResponse(html, {
+      headers: {
+        "Content-Type": "text/html",
+      },
+    });
   } catch (error) {
     console.error("SSO Login error:", error);
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
