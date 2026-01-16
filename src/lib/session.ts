@@ -36,9 +36,12 @@ export async function createSession(data: Omit<SessionData, "isLoggedIn">): Prom
   const session = await getSession();
 
   session.isLoggedIn = true;
+  session.accessToken = data.accessToken;
+  session.refreshToken = data.refreshToken;
+  session.tokenExpiresAt = data.tokenExpiresAt;
+  session.restInstanceUrl = data.restInstanceUrl;
   session.user = data.user;
   session.organization = data.organization;
-  session.api = data.api;
 
   await session.save();
 }

@@ -4,7 +4,7 @@ import { getSession } from "@/lib/session";
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; redirect?: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const session = await getSession();
   const params = await searchParams;
@@ -22,7 +22,7 @@ export default async function Home({
             Marketing Cloud App
           </h1>
           <p className="text-gray-600">
-            SSO Demo Application
+            SSO Demo Application (OAuth 2.0)
           </p>
         </div>
 
@@ -41,43 +41,50 @@ export default async function Home({
             </h2>
             <p className="text-blue-800 text-sm">
               This application is designed to be accessed from within
-              Salesforce Marketing Cloud. The SSO login will be initiated
-              automatically when you open this app from your Marketing Cloud
-              instance.
+              Salesforce Marketing Cloud. Click on the app in your Marketing
+              Cloud instance to initiate the OAuth 2.0 SSO flow.
             </p>
           </div>
 
-          {process.env.NODE_ENV !== "production" && (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-              <h2 className="font-semibold text-yellow-900 mb-2">
-                Development Mode
-              </h2>
-              <p className="text-yellow-800 text-sm mb-3">
-                You can test the SSO flow using the test page.
-              </p>
-              <a
-                href="/test-sso"
-                className="inline-block bg-yellow-600 text-white px-4 py-2 rounded-md text-sm hover:bg-yellow-700 transition-colors"
-              >
-                Open SSO Test Page
-              </a>
-            </div>
-          )}
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-md">
+            <h2 className="font-semibold text-gray-700 mb-2">
+              Authentication Flow
+            </h2>
+            <ol className="text-gray-600 text-sm list-decimal list-inside space-y-1">
+              <li>MC opens Login Endpoint in iframe</li>
+              <li>Redirect to MC OAuth authorize</li>
+              <li>User authorizes (if needed)</li>
+              <li>Callback receives auth code</li>
+              <li>Exchange code for tokens</li>
+              <li>Fetch user info & create session</li>
+            </ol>
+          </div>
         </div>
 
         <div className="mt-8 pt-6 border-t border-gray-200">
           <h3 className="font-semibold text-gray-700 mb-3">
-            SSO Endpoint
+            Endpoints
           </h3>
-          <div className="bg-gray-100 p-3 rounded-md">
-            <code className="text-sm text-gray-800 break-all">
-              POST /api/auth/login
-            </code>
+          <div className="space-y-2">
+            <div className="bg-gray-100 p-3 rounded-md">
+              <p className="text-xs text-gray-500 mb-1">Login Endpoint</p>
+              <code className="text-sm text-gray-800 break-all">
+                /api/auth/login
+              </code>
+            </div>
+            <div className="bg-gray-100 p-3 rounded-md">
+              <p className="text-xs text-gray-500 mb-1">Callback Endpoint</p>
+              <code className="text-sm text-gray-800 break-all">
+                /api/auth/callback
+              </code>
+            </div>
+            <div className="bg-gray-100 p-3 rounded-md">
+              <p className="text-xs text-gray-500 mb-1">Logout Endpoint</p>
+              <code className="text-sm text-gray-800 break-all">
+                /api/auth/logout
+              </code>
+            </div>
           </div>
-          <p className="text-gray-500 text-xs mt-2">
-            Configure this endpoint as the Login Endpoint in your Marketing
-            Cloud Installed Package.
-          </p>
         </div>
       </div>
     </main>

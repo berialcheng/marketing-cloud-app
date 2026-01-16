@@ -1,63 +1,52 @@
 /**
- * Marketing Cloud JWT Payload Types
- * Based on Salesforce Marketing Cloud Web App API Integration
+ * Marketing Cloud OAuth 2.0 Types
+ * For Enhanced Package SSO
  */
 
-export interface MCUserTimezone {
-  shortName: string;
-  longName: string;
-  offset: number;
-  dst: boolean;
+export interface MCTokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  scope: string;
+  rest_instance_url: string;
+  soap_instance_url: string;
+  refresh_token?: string;
 }
 
-export interface MCUser {
-  id: number;
-  email: string;
-  culture: string;
-  timezone?: MCUserTimezone;
-}
-
-export interface MCOrganization {
-  id: number;           // MID (Business Unit ID)
-  enterpriseId: number; // EID (Enterprise ID)
-  dataContext?: string;
-  stackKey?: string;
-  region?: string;
-}
-
-export interface MCRestInfo {
-  authEndpoint: string;
-  apiEndpointBase: string;
-  refreshToken: string;
-}
-
-export interface MCApplication {
-  id: string;
-  package: string;
-  redirectUrl?: string;
-  features?: Record<string, unknown>;
-  userPermissions?: string[];
-}
-
-export interface MCRequestPayload {
-  claimsVersion?: number;
-  rest: MCRestInfo;
-  user: MCUser;
-  organization: MCOrganization;
-  application?: MCApplication;
-}
-
-export interface MCJWTPayload {
-  exp: number;
-  jti?: string;
-  request: MCRequestPayload;
+export interface MCUserInfo {
+  sub: string;
+  user: {
+    id: number;
+    email: string;
+    name: string;
+    preferred_username: string;
+    culture: string;
+    timezone: {
+      longName: string;
+      shortName: string;
+      offset: number;
+      dst: boolean;
+    };
+  };
+  organization: {
+    id: number;
+    enterprise_id: number;
+    data_context: string;
+    stack_key: string;
+    region: string;
+  };
 }
 
 export interface SessionData {
   isLoggedIn: boolean;
+  accessToken?: string;
+  refreshToken?: string;
+  tokenExpiresAt?: number;
+  restInstanceUrl?: string;
   user?: {
     id: number;
     email: string;
+    name: string;
     culture: string;
   };
   organization?: {
@@ -65,11 +54,6 @@ export interface SessionData {
     enterpriseId: number;
     stackKey?: string;
     region?: string;
-  };
-  api?: {
-    authEndpoint: string;
-    apiEndpoint: string;
-    refreshToken: string;
   };
 }
 

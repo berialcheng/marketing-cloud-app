@@ -4,10 +4,14 @@ import { getSession } from "@/lib/session";
 export default async function Dashboard() {
   const session = await getSession();
 
-  // Double-check authentication (middleware should have already handled this)
+  // Double-check authentication
   if (!session.isLoggedIn) {
     redirect("/");
   }
+
+  const tokenExpired = session.tokenExpiresAt
+    ? Date.now() > session.tokenExpiresAt
+    : false;
 
   return (
     <main className="min-h-screen bg-gray-50 p-8">
@@ -26,12 +30,23 @@ export default async function Dashboard() {
 
         <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-6">
           <p className="text-green-800 font-semibold">
-            SSO Authentication Successful
+            SSO Authentication Successful (OAuth 2.0)
           </p>
           <p className="text-green-700 text-sm">
-            You have been authenticated via Marketing Cloud SSO.
+            You have been authenticated via Marketing Cloud OAuth 2.0 flow.
           </p>
         </div>
+
+        {tokenExpired && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
+            <p className="text-yellow-800 font-semibold">
+              Token Expired
+            </p>
+            <p className="text-yellow-700 text-sm">
+              Your access token has expired. Please refresh the page to re-authenticate.
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* User Information */}
@@ -55,6 +70,12 @@ export default async function Dashboard() {
               User Information
             </h2>
             <dl className="space-y-3">
+              <div>
+                <dt className="text-sm text-gray-500">Name</dt>
+                <dd className="text-gray-900 font-medium">
+                  {session.user?.name || "N/A"}
+                </dd>
+              </div>
               <div>
                 <dt className="text-sm text-gray-500">User ID</dt>
                 <dd className="text-gray-900 font-medium">
@@ -146,36 +167,38 @@ export default async function Dashboard() {
                   />
                 </svg>
               </span>
-              API Endpoints
+              API Access
             </h2>
             <dl className="space-y-3">
               <div>
-                <dt className="text-sm text-gray-500">Auth Endpoint</dt>
+                <dt className="text-sm text-gray-500">REST Instance URL</dt>
                 <dd className="text-gray-900 font-mono text-sm bg-gray-50 p-2 rounded break-all">
-                  {session.api?.authEndpoint}
+                  {session.restInstanceUrl || "N/A"}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm text-gray-500">REST API Base URL</dt>
-                <dd className="text-gray-900 font-mono text-sm bg-gray-50 p-2 rounded break-all">
-                  {session.api?.apiEndpoint}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-gray-500">Refresh Token</dt>
+                <dt className="text-sm text-gray-500">Access Token</dt>
                 <dd className="text-gray-900 font-mono text-sm bg-gray-50 p-2 rounded">
                   <span className="text-gray-400">
-                    {session.api?.refreshToken
-                      ? `${session.api.refreshToken.substring(0, 20)}...`
-                      : "Not available"}
+                    {session.accessToken
+                      ? `${session.accessToken.substring(0, 20)}...`
+                      : "N/A"}
                   </span>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-gray-500">Token Expires</dt>
+                <dd className="text-gray-900 font-mono text-sm bg-gray-50 p-2 rounded">
+                  {session.tokenExpiresAt
+                    ? new Date(session.tokenExpiresAt).toLocaleString()
+                    : "N/A"}
                 </dd>
               </div>
             </dl>
           </div>
         </div>
 
-        {/* Session Info */}
+        {/* Session Debug */}
         <div className="mt-6 bg-white rounded-lg shadow-md p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Session Data (Debug)
@@ -186,13 +209,12 @@ export default async function Dashboard() {
                 isLoggedIn: session.isLoggedIn,
                 user: session.user,
                 organization: session.organization,
-                api: session.api
-                  ? {
-                      authEndpoint: session.api.authEndpoint,
-                      apiEndpoint: session.api.apiEndpoint,
-                      refreshToken: "***hidden***",
-                    }
+                restInstanceUrl: session.restInstanceUrl,
+                tokenExpiresAt: session.tokenExpiresAt
+                  ? new Date(session.tokenExpiresAt).toISOString()
                   : null,
+                accessToken: session.accessToken ? "***hidden***" : null,
+                refreshToken: session.refreshToken ? "***hidden***" : null,
               },
               null,
               2

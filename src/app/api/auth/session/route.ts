@@ -19,8 +19,10 @@ export async function GET() {
       isLoggedIn: true,
       user: session.user,
       organization: session.organization,
-      // Don't expose sensitive API data to client
-      hasApiAccess: !!session.api?.refreshToken,
+      restInstanceUrl: session.restInstanceUrl,
+      // Don't expose tokens to client, just indicate if we have API access
+      hasApiAccess: !!session.accessToken,
+      tokenExpiresAt: session.tokenExpiresAt,
     });
   } catch (error) {
     console.error("Session fetch error:", error);

@@ -39,14 +39,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Block test-sso page in production
-  if (pathname === "/test-sso" && process.env.NODE_ENV === "production") {
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/test-sso"],
+  matcher: ["/dashboard/:path*"],
 };
