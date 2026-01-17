@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get OAuth configuration from environment
-    const authBaseUri = process.env.MC_AUTH_BASE_URI;
+    const authBaseUri = process.env.MC_AUTH_BASE_URI?.replace(/\/+$/, "");
     const clientId = process.env.MC_CLIENT_ID;
     const redirectUri = process.env.MC_REDIRECT_URI ||
       `${process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin}/api/auth/callback`;
@@ -49,26 +49,45 @@ export async function GET(request: NextRequest) {
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Redirecting to Marketing Cloud...</title>
-  <script>
-    // Set state cookie before redirect
-    document.cookie = "oauth_state=${state}; path=/; max-age=600; SameSite=None; Secure";
-    // Redirect top-level window (breaks out of iframe)
-    window.top.location.href = "${authorizeUrl.toString()}";
-  </script>
+  <title>Continue to Marketing Cloud...</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; padding: 24px; }
+    .card { max-width: 520px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 20px; }
+    h1 { font-size: 18px; margin: 0 0 12px; }
+    p { margin: 0 0 12px; color: #374151; font-size: 14px; line-height: 1.4; }
+    .btn { display: inline-block; background: #2563eb; color: #fff; padding: 10px 14px; border-radius: 8px; text-decoration: none; font-size: 14px; }
+    .muted { color: #6b7280; font-size: 12px; }
+  </style>
 </head>
 <body>
-  <p>Redirecting to Marketing Cloud for authentication...</p>
-  <p>If you are not redirected, <a href="${authorizeUrl.toString()}" target="_top">click here</a>.</p>
+  <div class="card">
+    <h1>Continue to sign in</h1>
+    <p>Browser security requires a click to continue the Marketing Cloud authentication flow.</p>
+    <p><a class="btn" href="${authorizeUrl.toString()}" target="_top" rel="noopener">Continue to Marketing Cloud</a></p>
+    <p class="muted">If the button doesn’t work, open this link in a new tab: ${authorizeUrl.toString()}</p>
+  </div>
 </body>
 </html>
 `;
 
-    return new NextResponse(html, {
+    const response = new NextResponse(html, {
       headers: {
         "Content-Type": "text/html",
       },
     });
+
+    response.cookies.set({
+      name: "oauth_state",
+      value: state,
+      path: "/",
+      maxAge: 600,
+      httpOnly: true,
+      sameSite: "none",
+      secure: true,
+    });
+
+    return response;
   } catch (error) {
     console.error("SSO Login error:", error);
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
