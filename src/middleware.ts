@@ -10,6 +10,8 @@ const sessionOptions = {
   cookieName: process.env.SESSION_COOKIE_NAME || "mc_app_session",
   cookieOptions: {
     secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+    sameSite: "none" as const,
   },
 };
 
@@ -22,24 +24,26 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith(route)
   );
 
-  if (isProtectedRoute) {
-    // Get session from cookies
-    const response = NextResponse.next();
-    const session = await getIronSession<SessionData>(
-      request,
-      response,
-      sessionOptions
-    );
-
-    // Check if user is logged in
-    if (!session.isLoggedIn) {
-      const loginUrl = new URL("/", request.url);
-      loginUrl.searchParams.set("redirect", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
+  if (!isProtectedRoute) {
+    return NextResponse.next();
   }
 
-  return NextResponse.next();
+  // Get session from cookies
+  const response = NextResponse.next();
+  const session = await getIronSession<SessionData>(
+    request,
+    response,
+    sessionOptions
+  );
+
+  // Check if user is logged in
+  if (!session.isLoggedIn) {
+    const loginUrl = new URL("/", request.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return response;
 }
 
 export const config = {
