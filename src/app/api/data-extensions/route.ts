@@ -13,20 +13,16 @@ interface DataExtension {
   modifiedDate?: string;
 }
 
-interface MCDataExtensionResponse {
+// Response from /hub/v1/dataevents (sendable DEs)
+interface MCDataEventsResponse {
   count: number;
   page: number;
   pageSize: number;
   items: Array<{
-    id: string;
-    key: string;
+    eventDefinitionKey: string;
     name: string;
     description?: string;
-    isSendable: boolean;
-    isTestable: boolean;
-    rowBasedRetention?: boolean;
-    rowCount?: number;
-    createdDate?: string;
+    createdDate: string;
     modifiedDate?: string;
   }>;
 }
@@ -54,15 +50,9 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
 
-    // Marketing Cloud REST API endpoint for Data Extensions
-    const apiUrl = `${session.restInstanceUrl}data/v1/customobjectdata/query`;
-
-    // Use the Data Extension query endpoint with SOAP-style query
-    // Alternative: Use the asset API for metadata
-    const assetApiUrl = `${session.restInstanceUrl}asset/v1/content/assets`;
-
-    // First, try the Data Extension specific endpoint
-    const deApiUrl = `${session.restInstanceUrl}data/v1/customobjectdefinitions`;
+    // Marketing Cloud REST API - use /hub/v1/dataevents for sendable Data Extensions
+    // Note: This only returns sendable DEs. For all DEs, SOAP API would be needed.
+    const deApiUrl = `${session.restInstanceUrl}hub/v1/dataevents`;
 
     const response = await fetch(`${deApiUrl}?$page=${page}&$pageSize=${pageSize}`, {
       method: "GET",
@@ -76,7 +66,6 @@ export async function GET(request: Request) {
       const errorText = await response.text();
       console.error("MC API Error:", response.status, errorText);
 
-      // If the endpoint doesn't work, return a helpful error
       return NextResponse.json(
         {
           error: "Failed to fetch Data Extensions",
@@ -87,17 +76,16 @@ export async function GET(request: Request) {
       );
     }
 
-    const data: MCDataExtensionResponse = await response.json();
+    const data: MCDataEventsResponse = await response.json();
 
     // Transform the response
     const dataExtensions: DataExtension[] = data.items?.map((item) => ({
-      id: item.id,
-      key: item.key,
+      id: item.eventDefinitionKey,
+      key: item.eventDefinitionKey,
       name: item.name,
       description: item.description,
-      isSendable: item.isSendable,
-      isTestable: item.isTestable,
-      rowCount: item.rowCount,
+      isSendable: true, // All items from dataevents are sendable
+      isTestable: false,
       createdDate: item.createdDate,
       modifiedDate: item.modifiedDate,
     })) || [];
