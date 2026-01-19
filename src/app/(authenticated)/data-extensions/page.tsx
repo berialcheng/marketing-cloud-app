@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 
 interface DataExtension {
   id: string;
@@ -39,7 +38,6 @@ export default function DataExtensionsPage() {
 
       if (!response.ok) {
         if (response.status === 401) {
-          // Redirect to login if unauthorized
           window.location.href = "/";
           return;
         }
@@ -64,30 +62,14 @@ export default function DataExtensionsPage() {
   const totalPages = Math.ceil(pagination.total / pagination.pageSize);
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
+    <div className="p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Data Extensions</h1>
-            <p className="text-gray-600 text-sm mt-1">
-              Browse and manage your Marketing Cloud Data Extensions
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <Link
-              href="/dashboard"
-              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-md text-sm hover:bg-gray-200 transition-colors"
-            >
-              Back to Dashboard
-            </Link>
-            <a
-              href="/api/auth/logout"
-              className="bg-gray-600 text-white px-4 py-2 rounded-md text-sm hover:bg-gray-700 transition-colors"
-            >
-              Logout
-            </a>
-          </div>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Data Extensions</h1>
+          <p className="text-gray-600 text-sm mt-1">
+            Browse your Marketing Cloud Data Extensions
+          </p>
         </div>
 
         {/* Error State */}
@@ -217,6 +199,6 @@ export default function DataExtensionsPage() {
           </>
         )}
       </div>
-    </main>
+    </div>
   );
 }
