@@ -8,11 +8,7 @@ interface DataExtension {
   key: string;
   name: string;
   description?: string;
-  isSendable: boolean;
-  isTestable: boolean;
-  rowCount?: number;
-  createdDate?: string;
-  modifiedDate?: string;
+  categoryId?: number;
 }
 
 interface Pagination {
@@ -158,13 +154,7 @@ export default function DataExtensionsPage() {
                           Description
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Rows
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Sendable
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Modified
+                          Category ID
                         </th>
                       </tr>
                     </thead>
@@ -188,24 +178,8 @@ export default function DataExtensionsPage() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">
-                              {de.rowCount?.toLocaleString() ?? "-"}
+                              {de.categoryId ?? "-"}
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {de.isSendable ? (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                Yes
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                No
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {de.modifiedDate
-                              ? new Date(de.modifiedDate).toLocaleDateString()
-                              : "-"}
                           </td>
                         </tr>
                       ))}

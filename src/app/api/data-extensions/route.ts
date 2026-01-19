@@ -6,24 +6,23 @@ interface DataExtension {
   key: string;
   name: string;
   description?: string;
-  isSendable: boolean;
-  isTestable: boolean;
-  rowCount?: number;
-  createdDate?: string;
-  modifiedDate?: string;
+  categoryId?: number;
 }
 
-// Response from /hub/v1/dataevents (sendable DEs)
-interface MCDataEventsResponse {
+interface MCAttributeSetResponse {
   count: number;
   page: number;
   pageSize: number;
   items: Array<{
-    eventDefinitionKey: string;
-    name: string;
-    description?: string;
-    createdDate: string;
-    modifiedDate?: string;
+    definitionID: string;
+    definitionKey: string;
+    definitionName: {
+      value: string;
+    };
+    connectingID?: {
+      identifierType: string;
+    };
+    categoryID?: number;
   }>;
 }
 
@@ -38,7 +37,6 @@ export async function GET(request: Request) {
       );
     }
 
-    // Check if token is expired
     if (session.tokenExpiresAt && Date.now() > session.tokenExpiresAt) {
       return NextResponse.json(
         { error: "Token expired", code: "TOKEN_EXPIRED" },
@@ -50,11 +48,18 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
 
-    // Marketing Cloud REST API - use /hub/v1/dataevents for sendable Data Extensions
-    // Note: This only returns sendable DEs. For all DEs, SOAP API would be needed.
-    const deApiUrl = `${session.restInstanceUrl}hub/v1/dataevents`;
+    // Ensure restInstanceUrl ends with /
+    const baseUrl = session.restInstanceUrl?.endsWith("/")
+      ? session.restInstanceUrl
+      : `${session.restInstanceUrl}/`;
 
-    const response = await fetch(`${deApiUrl}?$page=${page}&$pageSize=${pageSize}`, {
+    // Try Contact Builder API - /contacts/v1/attributeSetDefinitions
+    // This lists attribute sets which include Data Extensions linked to contacts
+    const apiUrl = `${baseUrl}contacts/v1/attributeSetDefinitions`;
+
+    console.log("Fetching attribute sets from:", apiUrl);
+
+    const response = await fetch(`${apiUrl}?$page=${page}&$pageSize=${pageSize}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${session.accessToken}`,
@@ -66,28 +71,31 @@ export async function GET(request: Request) {
       const errorText = await response.text();
       console.error("MC API Error:", response.status, errorText);
 
+      // Return helpful info about the API limitation
       return NextResponse.json(
         {
-          error: "Failed to fetch Data Extensions",
-          details: errorText,
-          status: response.status
+          error: "Unable to list Data Extensions",
+          message: "Marketing Cloud REST API doesn't have a direct endpoint to list all Data Extensions. The SOAP API is required for this functionality.",
+          debug: {
+            endpoint: apiUrl,
+            status: response.status,
+            restInstanceUrl: session.restInstanceUrl,
+            details: errorText,
+          },
+          suggestion: "Ensure your API Integration has the required scopes: data_extensions_read, list_and_subscribers_read",
         },
         { status: response.status }
       );
     }
 
-    const data: MCDataEventsResponse = await response.json();
+    const data: MCAttributeSetResponse = await response.json();
 
     // Transform the response
     const dataExtensions: DataExtension[] = data.items?.map((item) => ({
-      id: item.eventDefinitionKey,
-      key: item.eventDefinitionKey,
-      name: item.name,
-      description: item.description,
-      isSendable: true, // All items from dataevents are sendable
-      isTestable: false,
-      createdDate: item.createdDate,
-      modifiedDate: item.modifiedDate,
+      id: item.definitionID,
+      key: item.definitionKey,
+      name: item.definitionName?.value || item.definitionKey,
+      categoryId: item.categoryID,
     })) || [];
 
     return NextResponse.json({
@@ -97,6 +105,7 @@ export async function GET(request: Request) {
         pageSize: data.pageSize || pageSize,
         total: data.count || dataExtensions.length,
       },
+      note: "This endpoint returns Attribute Sets from Contact Builder, not all Data Extensions.",
     });
   } catch (error) {
     console.error("Error fetching Data Extensions:", error);
