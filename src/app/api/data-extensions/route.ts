@@ -104,12 +104,23 @@ export async function GET(request: Request) {
 
     // Transform the response - handle different possible response formats
     const items = data.items || data.definitions || data.entry || [];
+
+    // Helper to extract string value from potential {value: string} objects
+    const getString = (val: unknown): string => {
+      if (typeof val === "string") return val;
+      if (val && typeof val === "object" && "value" in val) {
+        return String((val as { value: unknown }).value || "");
+      }
+      return val ? String(val) : "";
+    };
+
     const dataExtensions: DataExtension[] = items.map((item: Record<string, unknown>) => ({
-      id: item.definitionID || item.id || item.customerKey || item.key || "",
-      key: item.definitionKey || item.customerKey || item.key || item.externalKey || "",
-      name: (item.definitionName as { value?: string })?.value || item.name || item.definitionKey || "",
-      description: item.description as string || undefined,
-      categoryId: item.categoryID as number || item.categoryId as number || undefined,
+      id: getString(item.definitionID || item.id || item.customerKey || item.key),
+      key: getString(item.definitionKey || item.customerKey || item.key || item.externalKey),
+      name: getString(item.definitionName || item.name || item.definitionKey),
+      description: getString(item.description) || undefined,
+      categoryId: typeof item.categoryID === "number" ? item.categoryID :
+                  typeof item.categoryId === "number" ? item.categoryId : undefined,
     }));
 
     return NextResponse.json({
