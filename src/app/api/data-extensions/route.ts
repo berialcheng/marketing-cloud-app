@@ -30,16 +30,37 @@ export async function GET(request: Request) {
   try {
     const session = await getSession();
 
+    console.log("Data Extensions API - Session check:", {
+      isLoggedIn: session.isLoggedIn,
+      hasAccessToken: !!session.accessToken,
+      tokenExpiresAt: session.tokenExpiresAt,
+      now: Date.now(),
+    });
+
     if (!session.isLoggedIn || !session.accessToken) {
       return NextResponse.json(
-        { error: "Unauthorized" },
+        {
+          error: "Unauthorized",
+          debug: {
+            isLoggedIn: session.isLoggedIn,
+            hasAccessToken: !!session.accessToken,
+          }
+        },
         { status: 401 }
       );
     }
 
     if (session.tokenExpiresAt && Date.now() > session.tokenExpiresAt) {
       return NextResponse.json(
-        { error: "Token expired", code: "TOKEN_EXPIRED" },
+        {
+          error: "Token expired",
+          code: "TOKEN_EXPIRED",
+          debug: {
+            tokenExpiresAt: session.tokenExpiresAt,
+            now: Date.now(),
+            expiredAgo: Date.now() - session.tokenExpiresAt,
+          }
+        },
         { status: 401 }
       );
     }

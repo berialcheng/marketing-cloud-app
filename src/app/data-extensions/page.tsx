@@ -33,7 +33,8 @@ export default function DataExtensionsPage() {
 
     try {
       const response = await fetch(
-        `/api/data-extensions?page=${page}&pageSize=${pagination.pageSize}`
+        `/api/data-extensions?page=${page}&pageSize=${pagination.pageSize}`,
+        { credentials: "include" }
       );
 
       if (!response.ok) {
