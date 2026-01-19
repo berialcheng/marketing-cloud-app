@@ -98,15 +98,19 @@ export async function GET(request: Request) {
       );
     }
 
-    const data: MCAttributeSetResponse = await response.json();
+    const data = await response.json();
 
-    // Transform the response
-    const dataExtensions: DataExtension[] = data.items?.map((item) => ({
-      id: item.definitionID,
-      key: item.definitionKey,
-      name: item.definitionName?.value || item.definitionKey,
-      categoryId: item.categoryID,
-    })) || [];
+    console.log("MC API Response:", JSON.stringify(data, null, 2));
+
+    // Transform the response - handle different possible response formats
+    const items = data.items || data.definitions || data.entry || [];
+    const dataExtensions: DataExtension[] = items.map((item: Record<string, unknown>) => ({
+      id: item.definitionID || item.id || item.customerKey || item.key || "",
+      key: item.definitionKey || item.customerKey || item.key || item.externalKey || "",
+      name: (item.definitionName as { value?: string })?.value || item.name || item.definitionKey || "",
+      description: item.description as string || undefined,
+      categoryId: item.categoryID as number || item.categoryId as number || undefined,
+    }));
 
     return NextResponse.json({
       dataExtensions,
@@ -115,7 +119,12 @@ export async function GET(request: Request) {
         pageSize: data.pageSize || pageSize,
         total: data.count || dataExtensions.length,
       },
-      note: "This endpoint returns Attribute Sets from Contact Builder, not all Data Extensions.",
+      note: "This endpoint returns Attribute Sets from Contact Builder.",
+      // Include raw response for debugging
+      _debug: {
+        rawItemCount: items.length,
+        sampleItem: items[0] || null,
+      },
     });
   } catch (error) {
     console.error("Error fetching Data Extensions:", error);
