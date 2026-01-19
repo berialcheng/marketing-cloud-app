@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
+import { getSession, getValidAccessToken } from "@/lib/session";
 
 interface DataExtension {
   id: string;
@@ -30,49 +30,38 @@ export async function GET(request: Request) {
   try {
     const session = await getSession();
 
-    console.log("Data Extensions API - Session check:", {
-      isLoggedIn: session.isLoggedIn,
-      hasAccessToken: !!session.accessToken,
-      tokenExpiresAt: session.tokenExpiresAt,
-      now: Date.now(),
-    });
-
-    if (!session.isLoggedIn || !session.accessToken) {
+    if (!session.isLoggedIn) {
       return NextResponse.json(
-        {
-          error: "Unauthorized",
-          debug: {
-            isLoggedIn: session.isLoggedIn,
-            hasAccessToken: !!session.accessToken,
-          }
-        },
+        { error: "Unauthorized", message: "Not logged in" },
         { status: 401 }
       );
     }
 
-    if (session.tokenExpiresAt && Date.now() > session.tokenExpiresAt) {
+    // Get valid access token (auto-refresh if expired)
+    const accessToken = await getValidAccessToken();
+
+    if (!accessToken) {
       return NextResponse.json(
         {
           error: "Token expired",
           code: "TOKEN_EXPIRED",
-          debug: {
-            tokenExpiresAt: session.tokenExpiresAt,
-            now: Date.now(),
-            expiredAgo: Date.now() - session.tokenExpiresAt,
-          }
+          message: "Unable to refresh token. Please log in again.",
         },
         { status: 401 }
       );
     }
+
+    // Re-fetch session to get potentially updated restInstanceUrl
+    const updatedSession = await getSession();
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1", 10);
     const pageSize = parseInt(searchParams.get("pageSize") || "50", 10);
 
     // Ensure restInstanceUrl ends with /
-    const baseUrl = session.restInstanceUrl?.endsWith("/")
-      ? session.restInstanceUrl
-      : `${session.restInstanceUrl}/`;
+    const baseUrl = updatedSession.restInstanceUrl?.endsWith("/")
+      ? updatedSession.restInstanceUrl
+      : `${updatedSession.restInstanceUrl}/`;
 
     // Try Contact Builder API - /contacts/v1/attributeSetDefinitions
     // This lists attribute sets which include Data Extensions linked to contacts
@@ -83,7 +72,7 @@ export async function GET(request: Request) {
     const response = await fetch(`${apiUrl}?$page=${page}&$pageSize=${pageSize}`, {
       method: "GET",
       headers: {
-        Authorization: `Bearer ${session.accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
     });
@@ -100,7 +89,7 @@ export async function GET(request: Request) {
           debug: {
             endpoint: apiUrl,
             status: response.status,
-            restInstanceUrl: session.restInstanceUrl,
+            restInstanceUrl: updatedSession.restInstanceUrl,
             details: errorText,
           },
           suggestion: "Ensure your API Integration has the required scopes: data_extensions_read, list_and_subscribers_read",
