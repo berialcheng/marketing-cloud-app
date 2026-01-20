@@ -125,8 +125,57 @@ export async function GET(request: NextRequest) {
 
     console.log(`SSO Login successful: ${userInfo.user.email} (MID: ${userInfo.organization.id})`);
 
-    // Clear state cookie and redirect to dashboard
-    const response = NextResponse.redirect(new URL("/dashboard", baseUrl));
+    // Return HTML that closes the popup and notifies the parent window
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sign in successful</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #f9fafb;
+    }
+    .card {
+      text-align: center;
+      padding: 32px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .success { color: #16a34a; font-size: 48px; margin-bottom: 16px; }
+    h1 { margin: 0 0 8px; font-size: 20px; }
+    p { margin: 0; color: #6b7280; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="success">✓</div>
+    <h1>Sign in successful!</h1>
+    <p>This window will close automatically...</p>
+  </div>
+  <script>
+    // Notify the parent window (iframe) that auth is complete
+    if (window.opener) {
+      window.opener.postMessage('oauth_complete', '*');
+      setTimeout(() => window.close(), 1000);
+    } else {
+      // If not in a popup, redirect to dashboard
+      window.location.href = '${baseUrl}/dashboard';
+    }
+  </script>
+</body>
+</html>
+`;
+
+    const response = new NextResponse(html, {
+      headers: { "Content-Type": "text/html" },
+    });
     response.cookies.delete("oauth_state");
     return response;
   } catch (error) {
